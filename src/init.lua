@@ -90,7 +90,7 @@ end
 Creates an __index metamethod for an object. Used to
 setup custom indexing.
 --]]
-function NexusInstance:__createindexmethod(Object,Class,RootClass)
+function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
 	--Get the base method.
 	local BaseIndexMethod = self.super:__createindexmethod(Object,Class,RootClass)
 	

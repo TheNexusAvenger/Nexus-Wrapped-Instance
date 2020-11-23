@@ -16,7 +16,7 @@ Sets up the test.
 function NexusWrappedInstanceTest:Setup()
     --Create the instances but don't store them to allow them to garbage collect.
     for _ = 1,10 do
-        NexusWrappedInstance.new("Part")
+        NexusWrappedInstance.new("Part"):Destroy()
     end
 end
 
@@ -26,7 +26,7 @@ Tests instances being garbage collected.
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("GarbageCollection"):SetRun(function(self)
     --Determine how many instances are stored and break if 0 is reached.
     local CachedInstances = 10
-    for _ = 1,30 * 10 do
+    for _ = 1,120 * 10 do
         CachedInstances = 0
         for _,_ in pairs(NexusWrappedInstance.CachedInstances) do
             CachedInstances = CachedInstances + 1
