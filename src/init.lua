@@ -179,8 +179,14 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
         --Return the object value if it exists.
         --TODO: Add ability to set "nillable".
         local BaseReturn = BaseIndexMethod(MethodObject,Index)
-        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "super" then
+        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "DisabledChangesReplication" or Index == "super" then
             return WrapData(BaseReturn)
+        end
+
+        --Return nil if the replication is disabled.
+        local DisabledChangesReplication = Object.DisabledChangesReplication
+        if DisabledChangesReplication and DisabledChangesReplication[Index] then
+            return nil
         end
 
         --Return the wrapped object's value.

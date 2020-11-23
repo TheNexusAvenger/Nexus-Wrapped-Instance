@@ -50,7 +50,7 @@ end))
 Tests the DisableChangeReplication method.
 --]]
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DisableChangeReplication"):SetRun(function(self)
-    --Assert disable changes aren't replicated.
+    --Assert disabled changes aren't replicated.
     self.CuT:DisableChangeReplication("Name")
     self.CuT.Name = "TestName1"
     self:AssertEquals(self.CuT.Name,"TestName1","Name is incorrect.")
@@ -66,6 +66,12 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DisableChangeRep
     self.CuT.Name = "TestName2"
     self:AssertEquals(self.CuT.Name,"TestName2","Name is incorrect.")
     self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name not replicated.")
+
+    --Assert disabled changes aren't fetched from the wrapped instance
+    self.CuT:DisableChangeReplication("UnknownProperty")
+    self:AssertEquals(self.CuT.UnknownProperty,nil,"Value is incorrect.")
+    self.CuT.UnknownProperty = "TestValue"
+    self:AssertEquals(self.CuT.UnknownProperty,"TestValue","Value is incorrect.")
 end))
 
 --[[
