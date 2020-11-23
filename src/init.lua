@@ -80,9 +80,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
         end
 
         --Replicate the change.
-        pcall(function()
-            InstanceToWrap[PropertyName] = self[PropertyName]
-        end)
+        InstanceToWrap[PropertyName] = self[PropertyName]
     end)
     InstanceToWrap.Changed:Connect(function(PropertyName)
         pcall(function()
