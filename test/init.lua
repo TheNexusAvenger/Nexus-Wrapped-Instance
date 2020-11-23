@@ -46,6 +46,43 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("IsA"):SetRun(fun
     self:AssertFalse(self.CuT:IsA("Model"))
 end))
 
+--[[
+Tests indexing the instance.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ObjectIndexing"):SetRun(function(self)
+    local Mesh = Instance.new("SpecialMesh")
+    Mesh.Name = "Mesh"
+    Mesh.Parent = self.CuT.WrappedInstance
+    self:AssertEquals(self.CuT.Name,"Part","Name is incorrect.")
+    self:AssertEquals(self.CuT.Mesh.Name,"Mesh","Child name is incorrect.")
+    self:AssertEquals(self.CuT.Parent,nil,"Nil property is incorrect.")
+    self:AssertEquals(self.CuT.ClassName,"NexusWrappedInstance","Class name (class property) is incorrect.")
+end))
+
+--[[
+Tests replicating changes to the wrapped object.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ToWrapppedObjectReplication"):SetRun(function(self)
+    self.CuT.Name = "TestName"
+    self:AssertEquals(self.CuT.Name,"TestName","Name is incorrect.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName","Name not replicated.")
+    self.CuT.Anchored = true
+    self:AssertTrue(self.CuT.Anchored,"Anchored is incorrect.")
+    self:AssertTrue(self.CuT.WrappedInstance.Anchored,"Anchored not replicated.")
+end))
+
+--[[
+Tests replicating changes to the wrapped object.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("FromWrapppedObjectReplication"):SetRun(function(self)
+    self.CuT.Name = "TestName1"
+    self:AssertEquals(self.CuT.Name,"TestName1","Name is incorrect.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName1","Name not replicated.")
+    self.CuT.WrappedInstance.Name = "TestName2"
+    self:AssertEquals(self.CuT.Name,"TestName2","Name not replicated.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name is incorrect.")
+end))
+
 
 
 return true

@@ -43,9 +43,45 @@ function NexusWrappedInstance:__new(InstanceToWrap)
 		InstanceToWrap = Instance.new(tostring(InstanceToWrap))
     end
     
-    --Store the value.
+    --Store the value in the cache.
     self.WrappedInstance = InstanceToWrap
     self.CachedInstances[InstanceToWrap] = self
+
+    --Connect replicating properties.
+    self.Changed:Connect(function(PropertyName)
+        pcall(function()
+            InstanceToWrap[PropertyName] = self[PropertyName]
+        end)
+    end)
+    InstanceToWrap.Changed:Connect(function(PropertyName)
+        pcall(function()
+            if self[PropertyName] ~= nil then
+                self[PropertyName] = InstanceToWrap[PropertyName]
+            end
+        end)
+    end)
+end
+
+--[[
+Creates an __index metamethod for an object. Used to
+setup custom indexing.
+--]]
+function NexusInstance:__createindexmethod(Object,Class,RootClass)
+	--Get the base method.
+	local BaseIndexMethod = self.super:__createindexmethod(Object,Class,RootClass)
+	
+	--Return a wrapped method.
+    return function(MethodObject,Index)
+        --Return the object value if it exists.
+        --TODO: Add ability to set "nillable".
+        local BaseReturn = BaseIndexMethod(MethodObject,Index)
+        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "super" then
+            return BaseReturn
+        end
+
+        --Return the wrapped object's value.
+        return Object.WrappedInstance[Index]
+	end
 end
 
 --[[
