@@ -57,6 +57,8 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ObjectIndexing")
     self:AssertEquals(self.CuT.Mesh.Name,"Mesh","Child name is incorrect.")
     self:AssertEquals(self.CuT.Parent,nil,"Nil property is incorrect.")
     self:AssertEquals(self.CuT.ClassName,"NexusWrappedInstance","Class name (class property) is incorrect.")
+    self:AssertTrue(self.CuT.Mesh:IsA("NexusWrappedInstance"),"Child isn't wrapped.")
+    self:AssertTrue(self.CuT.Mesh:IsA("SpecialMesh"),"Child isn't wrapped.")
 end))
 
 --[[

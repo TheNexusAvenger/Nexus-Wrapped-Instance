@@ -15,6 +15,30 @@ setmetatable(NexusWrappedInstance.CachedInstances,{__mode="v"})
 
 
 --[[
+Wraps the instance or table.
+--]]
+local function WrapData(InstanceOrTable)
+    --Return the wrapped object.
+    if typeof(InstanceOrTable) == "Instance" then
+        return NexusWrappedInstance.GetInstance(InstanceOrTable)
+    end
+
+    --Change the table entries.
+    if typeof(InstanceOrTable) == "table" and not InstanceOrTable.IsA then
+        for Key,Value in pairs(InstanceOrTable) do
+            if typeof(Value) == "Instance" or typeof(Value) == "table" then
+                InstanceOrTable[Key] = WrapData(Value)
+            end
+        end
+    end
+
+    --Return the base value.
+    return InstanceOrTable
+end
+
+
+
+--[[
 Gets a Nexus Wrapped Instance.
 --]]
 function NexusWrappedInstance.GetInstance(ExistingInstance)
@@ -76,11 +100,11 @@ function NexusInstance:__createindexmethod(Object,Class,RootClass)
         --TODO: Add ability to set "nillable".
         local BaseReturn = BaseIndexMethod(MethodObject,Index)
         if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "super" then
-            return BaseReturn
+            return WrapData(BaseReturn)
         end
 
         --Return the wrapped object's value.
-        return Object.WrappedInstance[Index]
+        return WrapData(Object.WrappedInstance[Index])
 	end
 end
 
