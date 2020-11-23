@@ -5,6 +5,8 @@ Wraps a Roblox Instance to add additional
 functionality.
 --]]
 
+local RunService = game:GetService("RunService")
+
 local NexusInstance = require(script:WaitForChild("NexusInstance"):WaitForChild("NexusInstance"))
 
 local NexusWrappedInstance = NexusInstance:Extend()
@@ -28,6 +30,29 @@ local function WrapData(InstanceOrTable)
         for Key,Value in pairs(InstanceOrTable) do
             if typeof(Value) == "Instance" or typeof(Value) == "table" then
                 InstanceOrTable[Key] = WrapData(Value)
+            end
+        end
+    end
+
+    --Return the base value.
+    return InstanceOrTable
+end
+
+--[[
+Unwraps the instance or table.
+--]]
+local function UnwrapData(InstanceOrTable)
+    --Unwrap the table.
+    if typeof(InstanceOrTable) == "table" then
+        if InstanceOrTable.WrappedInstance then
+            --Unwrap the instance.
+            return InstanceOrTable.WrappedInstance
+        else
+            --Change the table entries.
+            for Key,Value in pairs(InstanceOrTable) do
+                if typeof(Value) == "table" then
+                    InstanceOrTable[Key] = UnwrapData(Value)
+                end
             end
         end
     end
@@ -72,6 +97,30 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     self.DisabledChangesReplication = {}
     self.WrappedInstance = InstanceToWrap
 
+    --Set up the cyclic property changing blocking.
+    --Done internally to reduce overhead.
+    local PreviousChanges = {}
+    local PreviousChangesClearQueued = false
+
+    --[[
+    Queues clearing the previous changes.
+    --]]
+    local function QueueClearingChanges()
+        --Return if clearing is already queued.
+        if PreviousChangesClearQueued then
+            return
+        end
+
+        --Clear the previous changes after the next step.
+        --Done to prevent storing extra data in memory that would prevent garbage collection.
+        PreviousChangesClearQueued = true
+        coroutine.wrap(function()
+            RunService.Stepped:Wait()
+            PreviousChanges = {}
+            PreviousChangesClearQueued = false
+        end)()
+    end
+
     --Connect replicating properties.
     self.Changed:Connect(function(PropertyName)
         --Return if the replication is disabled.
@@ -79,13 +128,39 @@ function NexusWrappedInstance:__new(InstanceToWrap)
             return
         end
 
+        --Return if the value is the same as the previous change in the last step.
+        local Value = self[PropertyName]
+        if PreviousChanges[PropertyName] == Value then
+            return
+        end
+
+        --Add the property to the list of changed values and queue clearing the list.
+        --This prevents converted values from affecting the previous set, leading to a stack overflow from the events.
+        local ConvertedValue = self.object:ConvertProperty(PropertyName,Value)
+        PreviousChanges[PropertyName] = ConvertedValue
+        QueueClearingChanges()
+
         --Replicate the change.
-        InstanceToWrap[PropertyName] = self[PropertyName]
+        InstanceToWrap[PropertyName] = ConvertedValue
     end)
     InstanceToWrap.Changed:Connect(function(PropertyName)
         pcall(function()
+            --Read the new value.
+            local NewValue = InstanceToWrap[PropertyName]
+
+            --Return if the value is the same as the previous change in the last step.
+            if PreviousChanges[PropertyName] == NewValue then
+                return
+            end
+
+             --Add the property to the list of changed values and queue clearing the list.
+            --This prevents converted values from affecting the previous set, leading to a stack overflow from the events.
+            PreviousChanges[PropertyName] = NewValue
+            QueueClearingChanges()
+
+            --Change the property.
             if self[PropertyName] ~= nil then
-                self[PropertyName] = InstanceToWrap[PropertyName]
+                self[PropertyName] = NewValue
             end
         end)
     end)
@@ -160,6 +235,14 @@ instance for a specific property.
 --]]
 function NexusWrappedInstance:EnableChangeReplication(PropertyName)
     self.DisabledChangesReplication[PropertyName] = nil
+end
+
+--[[
+Converts a property for replicating to the
+wrapped instance.
+--]]
+function NexusWrappedInstance:ConvertProperty(PropertyName,PropertyValue)
+    return UnwrapData(PropertyValue)
 end
 
 

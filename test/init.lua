@@ -69,6 +69,16 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DisableChangeRep
 end))
 
 --[[
+Tests the ConvertProperty method.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ConvertProperty"):SetRun(function(self)
+    self:AssertEquals(self.CuT:ConvertProperty("Test","Test"),"Test","Value was changed.")
+    self:AssertEquals(self.CuT:ConvertProperty("Test",false),false,"Value was changed.")
+    self:AssertEquals(self.CuT:ConvertProperty("Test",self.CuT),self.CuT:GetWrappedInstance(),"Value wasn't unwrapped correctly.")
+    self:AssertEquals(self.CuT:ConvertProperty("Test",{self.CuT,self.CuT,{self.CuT,self.CuT}}),{self.CuT:GetWrappedInstance(),self.CuT:GetWrappedInstance(),{self.CuT:GetWrappedInstance(),self.CuT:GetWrappedInstance()}},"Value wasn't unwrapped correctly.")
+end))
+
+--[[
 Tests indexing the instance.
 --]]
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ObjectIndexing"):SetRun(function(self)
@@ -105,6 +115,31 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("FromWrapppedObje
     self.CuT.WrappedInstance.Name = "TestName2"
     self:AssertEquals(self.CuT.Name,"TestName2","Name not replicated.")
     self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name is incorrect.")
+end))
+
+--[[
+Tests replicating changes with converted properties.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ConvertedWrapppedObjectReplication"):SetRun(function(self)
+    --Add a custom converter for the name.
+    self.CuT:DisableChangeReplication("ConvertProperty")
+    function self.CuT:ConvertProperty(PropertyName,PropertyValue)
+        if PropertyName == "Name" then
+            return PropertyValue.."_2"
+        else
+            return NexusWrappedInstance.ConvertProperty(self.CuT,PropertyName,PropertyValue)
+        end
+    end
+
+    --Change the name of the instance and assert it is correct.
+    self.CuT.Name = "TestName1"
+    self:AssertEquals(self.CuT.Name,"TestName1","Name is incorrect.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName1_2","Name not replicated.")
+
+    --Change the name of the wrapped instance and assert it is correct.
+    self.CuT.WrappedInstance.Name = "TestName2"
+    self:AssertEquals(self.CuT.Name,"TestName2","Name not replicated.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name was changed.")
 end))
 
 
