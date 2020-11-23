@@ -47,6 +47,28 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("IsA"):SetRun(fun
 end))
 
 --[[
+Tests the DisableChangeReplication method.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DisableChangeReplication"):SetRun(function(self)
+    --Assert disable changes aren't replicated.
+    self.CuT:DisableChangeReplication("Name")
+    self.CuT.Name = "TestName1"
+    self:AssertEquals(self.CuT.Name,"TestName1","Name is incorrect.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"Part","Name was replicated.")
+
+    --Assert an undisabled change is replicated.
+    self.CuT.Anchored = true
+    self:AssertTrue(self.CuT.Anchored,"Anchored is incorrect.")
+    self:AssertTrue(self.CuT.WrappedInstance.Anchored,"Anchored not replicated.")
+
+    --Assert an enabled change is replicated.
+    self.CuT:EnableChangeReplication("Name")
+    self.CuT.Name = "TestName2"
+    self:AssertEquals(self.CuT.Name,"TestName2","Name is incorrect.")
+    self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name not replicated.")
+end))
+
+--[[
 Tests indexing the instance.
 --]]
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ObjectIndexing"):SetRun(function(self)

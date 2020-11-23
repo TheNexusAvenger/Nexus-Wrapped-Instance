@@ -68,11 +68,18 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     end
     
     --Store the value in the cache.
-    self.WrappedInstance = InstanceToWrap
     self.CachedInstances[InstanceToWrap] = self
+    self.DisabledChangesReplication = {}
+    self.WrappedInstance = InstanceToWrap
 
     --Connect replicating properties.
     self.Changed:Connect(function(PropertyName)
+        --Return if the replication is disabled.
+        if self.DisabledChangesReplication[PropertyName] then
+            return
+        end
+
+        --Replicate the change.
         pcall(function()
             InstanceToWrap[PropertyName] = self[PropertyName]
         end)
@@ -104,7 +111,10 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
         end
 
         --Return the wrapped object's value.
-        return WrapData(Object.WrappedInstance[Index])
+        local WrappedInstance = Object.WrappedInstance
+        if WrappedInstance then
+            return WrapData(WrappedInstance[Index])
+        end
 	end
 end
 
@@ -136,6 +146,22 @@ Returns the wrapped instance.
 --]]
 function NexusWrappedInstance:GetWrappedInstance()
 	return self.WrappedInstance
+end
+
+--[[
+Disables changes being replicated to the wrapped
+instance for a specific property.
+--]]
+function NexusWrappedInstance:DisableChangeReplication(PropertyName)
+    self.DisabledChangesReplication[PropertyName] = true
+end
+
+--[[
+Enables changes being replicated to the wrapped
+instance for a specific property.
+--]]
+function NexusWrappedInstance:EnableChangeReplication(PropertyName)
+    self.DisabledChangesReplication[PropertyName] = nil
 end
 
 
