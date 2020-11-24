@@ -33,17 +33,34 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("GetInstance"):Se
     self:AssertNotSame(self.CuT,NexusWrappedInstance.new("Part"),"Different instances are the same.")
     self:AssertNotSame(self.CuT,NexusWrappedInstance.GetInstance("Part"),"Different instances are the same.")
     self:AssertSame(self.CuT,NexusWrappedInstance.GetInstance(self.CuT:GetWrappedInstance()),"Incorrect cache entry fetched.")
+    self:AssertEquals(typeof(self.CuT:GetWrappedInstance()),"Instance","Wrapped instance is not an instance.")
 end))
 
 --[[
 Tests the IsA method.
 --]]
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("IsA"):SetRun(function(self)
+    --Test on the base class.
     self:AssertTrue(self.CuT:IsA("BasePart"))
     self:AssertTrue(self.CuT:IsA("Part"))
     self:AssertTrue(self.CuT:IsA("NexusWrappedInstance"))
     self:AssertTrue(self.CuT:IsA("NexusInstance"))
     self:AssertFalse(self.CuT:IsA("Model"))
+
+    --Test on an extended class.
+    local TestClass = NexusWrappedInstance:Extend()
+    TestClass:SetClassName("TestClass")
+    function TestClass:__new()
+        self:InitializeSuper("Part")
+    end
+    local CuT2 = TestClass.new()
+    self:AssertTrue(CuT2:IsA("BasePart"))
+    self:AssertTrue(CuT2:IsA("Part"))
+    self:AssertTrue(CuT2:IsA("TestClass"))
+    self:AssertTrue(CuT2:IsA("NexusWrappedInstance"))
+    self:AssertTrue(CuT2:IsA("NexusInstance"))
+    self:AssertFalse(CuT2:IsA("Model"))
+    CuT2:Destroy()
 end))
 
 --[[

@@ -197,7 +197,10 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
     return function(MethodObject,Index)
         --Return the object value if it exists.
         local BaseReturn = BaseIndexMethod(MethodObject,Index)
-        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" or Index == "super" then
+        if Index == "WrappedInstance" then
+            return BaseReturn
+        end
+        if BaseReturn ~= nil or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" or Index == "super" then
             return WrapData(BaseReturn)
         end
 
