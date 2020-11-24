@@ -148,6 +148,34 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ConvertedWrapppe
     self:AssertEquals(self.CuT.WrappedInstance.Name,"TestName2","Name was changed.")
 end))
 
+--[[
+Tests wrapping events.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("WrapEvents"):SetRun(function(self)
+    --Connect the ChildAdded event.
+    local EventCalls = {}
+    local Connection = self.CuT.ChildAdded:Connect(function(Ins)
+        table.insert(EventCalls,Ins)
+    end)
+
+    --Add test children.
+    local TestMesh,TestDecal = Instance.new("SpecialMesh"),Instance.new("Decal")
+    TestMesh.Parent = self.CuT:GetWrappedInstance()
+    TestDecal.Parent = self.CuT:GetWrappedInstance()
+
+    --Assert that the events were called correctly.
+    self:AssertTrue(Connection.Connected,"Connection is not connected.")
+    self:AssertNotNil(EventCalls[1],"Child added not called.")
+    self:AssertEquals(EventCalls[1]:GetWrappedInstance(),TestMesh,"Wrong parameter returned.")
+    self:AssertNotNil(EventCalls[2],"Child added not called.")
+    self:AssertEquals(EventCalls[2]:GetWrappedInstance(),TestDecal,"Wrong parameter returned.")
+    self:AssertNil(EventCalls[3],"Child added was called.")
+
+    --Destroy the component under testing and assert the event is disconnected.
+    self.CuT:Destroy()
+    self:AssertFalse(Connection.Connected,"Connection is connected.")
+end))
+
 
 
 return true

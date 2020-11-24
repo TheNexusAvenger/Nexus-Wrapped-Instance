@@ -8,6 +8,7 @@ functionality.
 local RunService = game:GetService("RunService")
 
 local NexusInstance = require(script:WaitForChild("NexusInstance"):WaitForChild("NexusInstance"))
+local NexusEventCreator = require(script:WaitForChild("NexusInstance"):WaitForChild("Event"):WaitForChild("NexusEventCreator"))
 
 local NexusWrappedInstance = NexusInstance:Extend()
 NexusWrappedInstance:SetClassName("NexusWrappedInstance")
@@ -95,7 +96,9 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     --Store the value in the cache.
     self.CachedInstances[InstanceToWrap] = self
     self.DisabledChangesReplication = {}
+    self.EventsToDisconnect = {}
     self.WrappedInstance = InstanceToWrap
+    self:DisableChangeReplication("EventsToDisconnect")
 
     --Set up the cyclic property changing blocking.
     --Done internally to reduce overhead.
@@ -178,7 +181,7 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
     return function(MethodObject,Index)
         --Return the object value if it exists.
         local BaseReturn = BaseIndexMethod(MethodObject,Index)
-        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "DisabledChangesReplication" or Index == "super" then
+        if BaseReturn ~= nil or Index == "WrappedInstance" or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" or Index == "super" then
             return WrapData(BaseReturn)
         end
 
@@ -191,7 +194,28 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
         --Return the wrapped object's value.
         local WrappedInstance = Object.WrappedInstance
         if WrappedInstance then
-            return WrapData(WrappedInstance[Index])
+            local Value = WrappedInstance[Index]
+
+            --Wrap the event.
+            if typeof(Value) == "RBXScriptSignal" then
+                --Create and store the event.
+                local Event = NexusEventCreator:CreateEvent()
+                Object:DisableChangeReplication(Index)
+                Object[Index] = Event
+                table.insert(Object.EventsToDisconnect,Event)
+
+                --Connect the event.
+                Value:Connect(function(...)
+                    local TotalArguments = select("#",...)
+                    Event:Fire(unpack(WrapData({...}),1,TotalArguments))
+                end)
+
+                --Return the event.
+                return Event
+            end
+
+            --Return the wrapped data.
+            return WrapData(Value)
         end
 	end
 end
@@ -217,6 +241,10 @@ function NexusWrappedInstance:Destroy()
     end
     
     --Disconnect the events.
+    for _,Event in pairs(self.EventsToDisconnect) do
+        Event:Disconnect()
+    end
+    self.EventsToDisconnect = {}
 end
 
 --[[
