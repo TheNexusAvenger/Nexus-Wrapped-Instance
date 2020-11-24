@@ -262,6 +262,15 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("Changed"):SetRun
     self:AssertEquals(SignalCalls,{"Name","Name","Anchored"},"GetPropertyChangedSignal calls are incorrect.")
 end))
 
+--[[
+Tests reading non-existent properties.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ReadNonExistentProperty"):SetRun(function(self)
+    self:AssertErrors(function()
+        local Temp = self.CuT.BadProperty
+    end)
+end))
+
 
 
 return true
