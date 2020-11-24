@@ -118,7 +118,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
         --Done to prevent storing extra data in memory that would prevent garbage collection.
         PreviousChangesClearQueued = true
         coroutine.wrap(function()
-            RunService.Stepped:Wait()
+            RunService.Heartbeat:Wait()
             PreviousChanges = {}
             PreviousChangesClearQueued = false
         end)()
@@ -167,6 +167,18 @@ function NexusWrappedInstance:__new(InstanceToWrap)
             end
         end)
     end)
+
+    --Connect the instance being destroyed.
+    --Mainly used if ClearAllChildren is called and Destroy isn't explicitly called.
+    --Workaround by Corecii.
+    local AncestryChangedConnection
+    AncestryChangedConnection = InstanceToWrap.AncestryChanged:Connect(function()
+        RunService.Heartbeat:Wait()
+        if not AncestryChangedConnection.Connected then
+            self:Destroy()
+        end
+    end)
+    table.insert(self.EventsToDisconnect,AncestryChangedConnection)
 end
 
 --[[

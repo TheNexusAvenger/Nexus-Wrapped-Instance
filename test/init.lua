@@ -193,6 +193,31 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("WrapFunctions"):
     self:AssertSame(self.CuT:IsAncestorOf(WrappedMesh2),false,"Wrong result returned.")
 end))
 
+--[[
+Tests destroying the children when ClearAllChildren is called.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DestroyChildren"):SetRun(function(self)
+    --Create and wrap 2 instances.
+    local Mesh,Decal = Instance.new("SpecialMesh"),Instance.new("Decal")
+    local WrappedMesh,WrappedDecal = NexusWrappedInstance.new(Mesh),NexusWrappedInstance.new(Decal)
+    WrappedMesh.Parent = self.CuT
+    WrappedDecal.Parent = self.CuT
+
+    --Create the connections.
+    local Connection1 = self.CuT.ChildAdded:Connect(function() end)
+    local Connection2 = self.CuT.ChildAdded:Connect(function() end)
+    local Connection3 = self.CuT.ChildAdded:Connect(function() end)
+
+    --Destroy the parent.
+    self.CuT:Destroy()
+    wait()
+
+    --Assert the connections were destroyed.
+    self:AssertFalse(Connection1.Connected,"Connection was not disconnected.")
+    self:AssertFalse(Connection2.Connected,"Connection was not disconnected.")
+    self:AssertFalse(Connection3.Connected,"Connection was not disconnected.")
+end))
+
 
 
 return true
