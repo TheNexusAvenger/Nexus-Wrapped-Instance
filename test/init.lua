@@ -218,6 +218,50 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("DestroyChildren"
     self:AssertFalse(Connection3.Connected,"Connection was not disconnected.")
 end))
 
+--[[
+Tests the Changed event.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("Changed"):SetRun(function(self)
+    --Connect the events.
+    local ChangeEventCalls = {}
+    local SignalCalls = {}
+    self.CuT.Changed:Connect(function(Property)
+        table.insert(ChangeEventCalls,Property)
+    end)
+    self.CuT:GetPropertyChangedSignal("Name"):Connect(function()
+        table.insert(SignalCalls,"Name")
+    end)
+    self.CuT:GetPropertyChangedSignal("Anchored"):Connect(function()
+        table.insert(SignalCalls,"Anchored")
+    end)
+
+    --Change the name of the instance and assert the changed events are correct.
+    self.CuT.Name = "Test1"
+    self:AssertEquals(ChangeEventCalls,{"Name"},"Changed calls are incorrect.")
+    self:AssertEquals(SignalCalls,{"Name"},"GetPropertyChangedSignal calls are incorrect.")
+
+    --Change the name of the wrapped instance and assert the changed events are correct.
+    self.CuT.WrappedInstance.Name = "Test2"
+    self:AssertEquals(ChangeEventCalls,{"Name","Name"},"Changed calls are incorrect.")
+    self:AssertEquals(SignalCalls,{"Name","Name"},"GetPropertyChangedSignal calls are incorrect.")
+
+    --Change the anchored property of the wrapped instance and assert the changed events are correct.
+    self.CuT.WrappedInstance.Anchored = true
+    self:AssertEquals(ChangeEventCalls,{"Name","Name","Anchored"},"Changed calls are incorrect.")
+    self:AssertEquals(SignalCalls,{"Name","Name","Anchored"},"GetPropertyChangedSignal calls are incorrect.")
+
+    --Change the locked property of the wrapped instance and assert the changed events are correct.
+    self.CuT.WrappedInstance.Locked = true
+    self:AssertEquals(ChangeEventCalls,{"Name","Name","Anchored","Locked"},"Changed calls are incorrect.")
+    self:AssertEquals(SignalCalls,{"Name","Name","Anchored"},"GetPropertyChangedSignal calls are incorrect.")
+
+    --Change a property to the same value and assert that the event calls didn't change.
+    self.CuT.Name = "Test2"
+    self.CuT.WrappedInstance.Locked = true
+    self:AssertEquals(ChangeEventCalls,{"Name","Name","Anchored","Locked"},"Changed calls are incorrect.")
+    self:AssertEquals(SignalCalls,{"Name","Name","Anchored"},"GetPropertyChangedSignal calls are incorrect.")
+end))
+
 
 
 return true

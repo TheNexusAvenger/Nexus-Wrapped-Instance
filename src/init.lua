@@ -162,8 +162,12 @@ function NexusWrappedInstance:__new(InstanceToWrap)
             QueueClearingChanges()
 
             --Change the property.
-            if self[PropertyName] ~= nil then
+            local ExistingValue = self[PropertyName]
+            if ExistingValue ~= nil and ExistingValue ~= NewValue then
                 self[PropertyName] = NewValue
+            else
+                self.Changed:Fire(PropertyName)
+                self:GetPropertyChangedSignal(PropertyName):Fire()
             end
         end)
     end)
