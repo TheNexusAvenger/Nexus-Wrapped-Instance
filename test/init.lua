@@ -176,6 +176,23 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("WrapEvents"):Set
     self:AssertFalse(Connection.Connected,"Connection is connected.")
 end))
 
+--[[
+Tests wrapping functions.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("WrapFunctions"):SetRun(function(self)
+    --Create and wrap 2 instances.
+    local Mesh1,Mesh2 = Instance.new("SpecialMesh"),Instance.new("SpecialMesh")
+    Mesh1.Name = "TestMesh"
+    local WrappedMesh1,WrappedMesh2 = NexusWrappedInstance.new(Mesh1),NexusWrappedInstance.new(Mesh2)
+    WrappedMesh1.Parent = self.CuT
+
+    --Assert Instance methods are correct.
+    self:AssertSame(self.CuT:FindFirstChild("TestMesh"),WrappedMesh1,"Wrong result returned.")
+    self:AssertSame(self.CuT:FindFirstChild("TestMesh2"),nil,"Wrong result returned.")
+    self:AssertSame(self.CuT:IsAncestorOf(WrappedMesh1),true,"Wrong result returned.")
+    self:AssertSame(self.CuT:IsAncestorOf(WrappedMesh2),false,"Wrong result returned.")
+end))
+
 
 
 return true

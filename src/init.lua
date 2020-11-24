@@ -156,7 +156,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
                 return
             end
 
-             --Add the property to the list of changed values and queue clearing the list.
+            --Add the property to the list of changed values and queue clearing the list.
             --This prevents converted values from affecting the previous set, leading to a stack overflow from the events.
             PreviousChanges[PropertyName] = NewValue
             QueueClearingChanges()
@@ -212,6 +212,24 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
 
                 --Return the event.
                 return Event
+            end
+
+            --Wrap the function.
+            if typeof(Value) == "function" then
+                --Wrap the function.
+                local function WrappedFunction(...)
+                    --Unwrap the parameters for the call.
+                    local TotalArguments = select("#",...)
+                    local UnwrappedArguments = UnwrapData({...})
+
+                    --Call and return the wrapped parameters.
+                    return WrapData(Value(unpack(UnwrappedArguments,1,TotalArguments)))
+                end
+
+                --Store and return the function.
+                Object:DisableChangeReplication(Index)
+                Object[Index] = WrappedFunction
+                return WrappedFunction
             end
 
             --Return the wrapped data.
