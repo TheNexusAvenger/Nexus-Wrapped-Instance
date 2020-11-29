@@ -102,6 +102,23 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ConvertProperty"
 end))
 
 --[[
+Tests the CreateGetInstance method.
+--]]
+NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("CreateGetInstance"):SetRun(function(self)
+    --Create a sub class with GetInstance.
+    local TestClass = NexusWrappedInstance:Extend()
+    TestClass:SetClassName("TestClass")
+    TestClass:CreateGetInstance()
+
+    --Test that GetInstance returns correctly.
+    local CuT1,CuT2 = TestClass.GetInstance("Part"),NexusWrappedInstance.GetInstance("Part")
+    self:AssertTrue(CuT1:IsA("NexusWrappedInstance"))
+    self:AssertTrue(CuT1:IsA("TestClass"))
+    self:AssertTrue(CuT2:IsA("NexusWrappedInstance"))
+    self:AssertFalse(CuT2:IsA("TestClass"))
+end))
+
+--[[
 Tests indexing the instance.
 --]]
 NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("ObjectIndexing"):SetRun(function(self)

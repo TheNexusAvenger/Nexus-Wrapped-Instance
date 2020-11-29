@@ -65,22 +65,27 @@ end
 
 
 --[[
-Gets a Nexus Wrapped Instance.
+Creates a GetInstance method for the class. Should be
+called staticly (right after NexusObject::Extend).
 --]]
-function NexusWrappedInstance.GetInstance(ExistingInstance)
-	--Create the string instance or create the cached instance if needed.
-	local CachedInstance = NexusWrappedInstance.CachedInstances[ExistingInstance]
-	if typeof(ExistingInstance) == "string" then
-		CachedInstance = NexusWrappedInstance.new(ExistingInstance)
-	else
-		if not CachedInstance then
-			CachedInstance = NexusWrappedInstance.new(ExistingInstance)
-		end
-	end
-	
-	--Return the cached entry.
-	return CachedInstance
+function NexusWrappedInstance:CreateGetInstance(Class)
+    Class = Class or self
+	Class.GetInstance = function(ExistingInstance)
+        --Create the string instance or create the cached instance if needed.
+        local CachedInstance = NexusWrappedInstance.CachedInstances[ExistingInstance]
+        if typeof(ExistingInstance) == "string" then
+            CachedInstance = Class.new(ExistingInstance)
+        else
+            if not CachedInstance then
+                CachedInstance = Class.new(ExistingInstance)
+            end
+        end
+        
+        --Return the cached entry.
+        return CachedInstance
+    end
 end
+NexusWrappedInstance:CreateGetInstance(NexusWrappedInstance)
 
 --[[
 Creates a Nexus Wrapped Instance object.
