@@ -86,6 +86,7 @@ end
 Creates a Nexus Wrapped Instance object.
 --]]
 function NexusWrappedInstance:__new(InstanceToWrap)
+    if self.WrappedInstance then return end
     self:InitializeSuper()
 
     --Convert the instance to wrap if it is a string.
@@ -94,7 +95,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     end
     
     --Store the value in the cache.
-    self.CachedInstances[InstanceToWrap] = self
+    self.CachedInstances[InstanceToWrap] = self.object
     self.DisabledChangesReplication = {}
     self.EventsToDisconnect = {}
     self.WrappedInstance = InstanceToWrap
