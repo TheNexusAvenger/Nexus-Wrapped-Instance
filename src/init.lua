@@ -131,14 +131,13 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     end
 
     --Connect replicating properties.
-    self.Changed:Connect(function(PropertyName)
+    self:AddGenericPropertyFinalizer(function(PropertyName,Value)
         --Return if the replication is disabled.
         if self.DisabledChangesReplication[PropertyName] then
             return
         end
 
         --Return if the value is the same as the previous change in the last step.
-        local Value = self[PropertyName]
         if PreviousChanges[PropertyName] == Value then
             return
         end
