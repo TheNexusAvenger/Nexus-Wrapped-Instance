@@ -8,7 +8,7 @@ functionality.
 local RunService = game:GetService("RunService")
 
 local NexusInstance = require(script:WaitForChild("NexusInstance"):WaitForChild("NexusInstance"))
-local NexusEventCreator = require(script:WaitForChild("NexusInstance"):WaitForChild("Event"):WaitForChild("NexusEventCreator"))
+local NexusEvent = require(script:WaitForChild("NexusInstance"):WaitForChild("Event"):WaitForChild("NexusEvent"))
 
 local NexusWrappedInstance = NexusInstance:Extend()
 NexusWrappedInstance:SetClassName("NexusWrappedInstance")
@@ -223,7 +223,7 @@ function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
             --Wrap the event.
             if typeof(Value) == "RBXScriptSignal" then
                 --Create and store the event.
-                local Event = NexusEventCreator:CreateEvent()
+                local Event = NexusEvent.new()
                 Object:DisableChangeReplication(Index)
                 Object[Index] = Event
                 table.insert(Object.EventsToDisconnect,Event)
