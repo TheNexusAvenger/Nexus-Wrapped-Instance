@@ -322,4 +322,12 @@ end
 
 
 
+--In non-test environemnts, return a singleton version of the module.
+--Multiple instances of Nexus Wrapped Instance can have unintended consequences with the state being distributed and inconsistent.
+if _G.EnsureNexusWrappedInstanceSingleton ~= false then
+    if not _G.NexusWrappedInstanceSingleton then
+        _G.NexusWrappedInstanceSingleton = NexusWrappedInstance
+    end
+    return _G.NexusWrappedInstanceSingleton
+end
 return NexusWrappedInstance

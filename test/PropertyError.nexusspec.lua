@@ -4,6 +4,7 @@ TheNexusAvenger
 Tests property errors of the NexusWrappedInstance class.
 --]]
 
+_G.EnsureNexusWrappedInstanceSingleton = false
 local NexusUnitTesting = require("NexusUnitTesting")
 local NexusWrappedInstance = require(game:GetService("ReplicatedStorage"):WaitForChild("NexusWrappedInstance"))
 local NexusInstance = require(game:GetService("ReplicatedStorage"):WaitForChild("NexusWrappedInstance"):WaitForChild("NexusInstance"):WaitForChild("NexusInstance"))
