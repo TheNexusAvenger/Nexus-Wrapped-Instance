@@ -16,7 +16,7 @@ local PartWithVolume = NexusWrappedInstance:Extend()
 
 --Add the constructor to wrap a part.
 function PartWithVolume:__new()
-	self:InitializeSuper("Part")
+	NexusWrappedInstance.__new(self, "Part")
 end
 
 --Add the method for getting the volume.
@@ -26,7 +26,7 @@ end
 
 --Test the code.
 local Part = PartWithVolume.new()
-Part.Size = Vector3.new(1,2,3)
+Part.Size = Vector3.new(1, 2, 3)
 print(Part:GetVolume()) --6
 ```
 
@@ -41,7 +41,7 @@ local PartWithVolume = NexusWrappedInstance:Extend()
 
 --Add the constructor to wrap a part.
 function PartWithVolume:__new()
-	self:InitializeSuper("Part")
+	NexusWrappedInstance.__new(self, "Part")
 end
 
 --Add the method for getting the volume.
@@ -50,11 +50,11 @@ function PartWithVolume:GetVolume()
 end
 
 --Add converting the properties.
-function PartWithVolume:ConvertProperty(PropertyName,PropertyValue)
+function PartWithVolume:ConvertProperty(PropertyName, PropertyValue)
 	if PropertyName == "Size" and typeof(PropertyValue) == "number" then
-		return Vector3.new(PropertyValue,PropertyValue,PropertyValue)
+		return Vector3.new(PropertyValue, PropertyValue, PropertyValue)
 	else
-		return self.super:ConvertProperty(PropertyName,PropertyValue)
+		return NexusWrappedInstance.ConvertProperty(self, PropertyName, PropertyValue)
 	end
 end
 
@@ -77,12 +77,12 @@ local PartWithVolume = NexusWrappedInstance:Extend()
 
 --Add the constructor to wrap a part.
 function PartWithVolume:__new()
-	self:InitializeSuper("Part")
+	NexusWrappedInstance.__new(self, "Part")
 	
 	--Set up checking the diameter.
 	self:DisableChangeReplication("Diameter")
 	self:GetPropertyChangedSignal("Diameter"):Connect(function()
-		self.Size = Vector3.new(self.Diameter,self.Diameter,self.Diameter)
+		self.Size = Vector3.new(self.Diameter, self.Diameter, self.Diameter)
 	end)
 end
 
