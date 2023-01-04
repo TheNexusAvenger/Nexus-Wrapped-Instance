@@ -236,6 +236,14 @@ return function()
             expect(SignalCalls[4]).to.equal(nil)
         end)
 
+        it("shouldn't wrap ignored instances.", function()
+            local TestPart = Instance.new("Part")
+            WrappedPart:IgnoreWrapping("TestProperty")
+            WrappedPart:DisableChangeReplication("TestProperty")
+            WrappedPart.TestProperty = TestPart
+            expect(WrappedPart.TestProperty).to.equal(TestPart)
+        end)
+
         it("should raise an error when a non-existent property is read.", function()
             expect(function()
                 local _ = WrappedPart.BadProperty

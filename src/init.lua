@@ -22,8 +22,9 @@ export type NexusWrappedInstance = {
     CreateGetInstance: (Class: NexusWrappedInstance) -> (),
 
     GetWrappedInstance: (self: NexusWrappedInstance) -> Instance,
-    DisableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
-    EnableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
+    IgnoreWrapping: (self: NexusWrappedInstance, PropertyName: string) -> (),
+    DisableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> (),
+    EnableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> (),
     ConvertProperty: (self: NexusWrappedInstance, PropertyName: string, PropertyValue: any) -> any,
 } & NexusInstance.NexusInstance & Instance
 
@@ -115,9 +116,13 @@ function NexusWrappedInstance:__new(InstanceOrStringToWrap: string | Instance)
     end
     
     --Store the value in the cache.
+    local UnwrappedProperties = {
+        WrappedInstance = true,
+    }
     self.CachedInstances[InstanceToWrap] = self
     self.DisabledChangesReplication = {}
     self.EventsToDisconnect = {}
+    self.UnwrappedProperties = UnwrappedProperties
     self.WrappedInstance = InstanceToWrap
     self:DisableChangeReplication("EventsToDisconnect")
 
@@ -126,7 +131,7 @@ function NexusWrappedInstance:__new(InstanceOrStringToWrap: string | Instance)
     getmetatable(self).__index = function(MethodObject: any, Index: string): any
         --Return the object value if it exists.
         local BaseReturn = OriginalIndexFunction(MethodObject, Index)
-        if Index == "WrappedInstance" then
+        if UnwrappedProperties[Index] then
             return BaseReturn
         end
         if BaseReturn ~= nil or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" then
@@ -304,6 +309,13 @@ Returns the wrapped instance.
 --]]
 function NexusWrappedInstance:GetWrappedInstance()
     return self.WrappedInstance
+end
+
+--[[
+Makes it so a property is never wrapped.
+--]]
+function NexusWrappedInstance:IgnoreWrapping(PropertYName: string): ()
+    self.UnwrappedProperties[PropertYName] = true
 end
 
 --[[
