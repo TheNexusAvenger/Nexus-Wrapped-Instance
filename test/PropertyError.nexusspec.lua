@@ -19,21 +19,19 @@ function NexusWrappedInstanceTest:Setup()
     --Create the instances but don't store them to allow them to garbage collect.
     local TestClass = NexusInstance:Extend()
     function TestClass:__new()
-        self:InitializeSuper()
+        NexusInstance.__new(self)
         self.AncestryChanged = {
             Connect = function()
                 
             end
         }
-    end
-    function TestClass:__createindexmethod(Object,Class,RootClass)
-        local BaseIndexMethod = self.super:__createindexmethod(Object,Class,RootClass)
-        return function(MethodObject,Index)
+
+        local BaseIndex = getmetatable(self).__index
+        getmetatable(self).__index = function(MethodObject: any, Index: string): any
             if Index == "BadProperty" then
                 error("Mock lack of permission error.")
-            else
-                return BaseIndexMethod(MethodObject,Index)
             end
+            return BaseIndex(MethodObject, Index)
         end
     end
 

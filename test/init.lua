@@ -52,7 +52,7 @@ NexusUnitTesting:RegisterUnitTest(NexusWrappedInstanceTest.new("IsA"):SetRun(fun
     local TestClass = NexusWrappedInstance:Extend()
     TestClass:SetClassName("TestClass")
     function TestClass:__new()
-        self:InitializeSuper("Part")
+        NexusWrappedInstance.__new(self, "Part")
     end
     local CuT2 = TestClass.new()
     self:AssertTrue(CuT2:IsA("BasePart"))

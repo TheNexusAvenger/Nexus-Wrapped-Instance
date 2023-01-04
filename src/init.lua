@@ -13,7 +13,7 @@ local NexusEvent = require(script:WaitForChild("NexusInstance"):WaitForChild("Ev
 local NexusWrappedInstance = NexusInstance:Extend()
 NexusWrappedInstance:SetClassName("NexusWrappedInstance")
 NexusWrappedInstance.CachedInstances = {}
-setmetatable(NexusWrappedInstance.CachedInstances,{__mode="v"})
+setmetatable(NexusWrappedInstance.CachedInstances, {__mode = "v"})
 
 
 
@@ -28,7 +28,7 @@ local function WrapData(InstanceOrTable)
 
     --Change the table entries.
     if typeof(InstanceOrTable) == "table" and not InstanceOrTable.IsA then
-        for Key,Value in pairs(InstanceOrTable) do
+        for Key,Value in InstanceOrTable do
             if typeof(Value) == "Instance" or typeof(Value) == "table" then
                 InstanceOrTable[Key] = WrapData(Value)
             end
@@ -50,7 +50,7 @@ local function UnwrapData(InstanceOrTable)
             return InstanceOrTable.WrappedInstance
         else
             --Change the table entries.
-            for Key,Value in pairs(InstanceOrTable) do
+            for Key,Value in InstanceOrTable do
                 if typeof(Value) == "table" then
                     InstanceOrTable[Key] = UnwrapData(Value)
                 end
@@ -70,7 +70,7 @@ called staticly (right after NexusObject::Extend).
 --]]
 function NexusWrappedInstance:CreateGetInstance(Class)
     Class = Class or self
-	Class.GetInstance = function(ExistingInstance)
+    Class.GetInstance = function(ExistingInstance)
         --Create the string instance or create the cached instance if needed.
         local CachedInstance = NexusWrappedInstance.CachedInstances[ExistingInstance]
         if typeof(ExistingInstance) == "string" then
@@ -92,19 +92,83 @@ Creates a Nexus Wrapped Instance object.
 --]]
 function NexusWrappedInstance:__new(InstanceToWrap)
     if self.WrappedInstance then return end
-    self:InitializeSuper()
+    NexusInstance.__new(self)
 
     --Convert the instance to wrap if it is a string.
     if typeof(InstanceToWrap) == "string" then
-		InstanceToWrap = Instance.new(tostring(InstanceToWrap))
+        InstanceToWrap = Instance.new(tostring(InstanceToWrap))
     end
     
     --Store the value in the cache.
-    self.CachedInstances[InstanceToWrap] = self.object
+    self.CachedInstances[InstanceToWrap] = self
     self.DisabledChangesReplication = {}
     self.EventsToDisconnect = {}
     self.WrappedInstance = InstanceToWrap
     self:DisableChangeReplication("EventsToDisconnect")
+
+    --Modify indexing to get instance properties.
+    local OriginalIndexFunction = getmetatable(self).__index
+    getmetatable(self).__index = function(MethodObject: any, Index: string): any
+        --Return the object value if it exists.
+        local BaseReturn = OriginalIndexFunction(MethodObject, Index)
+        if Index == "WrappedInstance" then
+            return BaseReturn
+        end
+        if BaseReturn ~= nil or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" then
+            return WrapData(BaseReturn)
+        end
+
+        --Return nil if the replication is disabled.
+        local DisabledChangesReplication = self.DisabledChangesReplication
+        if DisabledChangesReplication and DisabledChangesReplication[Index] then
+            return nil
+        end
+
+        --Return the wrapped object's value.
+        local WrappedInstance = self.WrappedInstance
+        if WrappedInstance then
+            local Value = WrappedInstance[Index]
+
+            --Wrap the event.
+            if typeof(Value) == "RBXScriptSignal" then
+                --Create and store the event.
+                local Event = NexusEvent.new()
+                self:DisableChangeReplication(Index)
+                self[Index] = Event
+                table.insert(self.EventsToDisconnect,Event)
+
+                --Connect the event.
+                Value:Connect(function(...)
+                    local TotalArguments = select("#",...)
+                    Event:Fire(unpack(WrapData({...}),1,TotalArguments))
+                end)
+
+                --Return the event.
+                return Event
+            end
+
+            --Wrap the function.
+            if typeof(Value) == "function" then
+                --Wrap the function.
+                local function WrappedFunction(...)
+                    --Unwrap the parameters for the call.
+                    local TotalArguments = select("#",...)
+                    local UnwrappedArguments = UnwrapData(table.pack(...))
+
+                    --Call and return the wrapped parameters.
+                    return WrapData(Value(table.unpack(UnwrappedArguments,1,TotalArguments)))
+                end
+
+                --Store and return the function.
+                self:DisableChangeReplication(Index)
+                self[Index] = WrappedFunction
+                return WrappedFunction
+            end
+
+            --Return the wrapped data.
+            return WrapData(Value)
+        end
+    end
 
     --Set up the cyclic property changing blocking.
     --Done internally to reduce overhead.
@@ -144,7 +208,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
 
         --Add the property to the list of changed values and queue clearing the list.
         --This prevents converted values from affecting the previous set, leading to a stack overflow from the events.
-        local ConvertedValue = self.object:ConvertProperty(PropertyName,Value)
+        local ConvertedValue = self:ConvertProperty(PropertyName,Value)
         PreviousChanges[PropertyName] = ConvertedValue
         QueueClearingChanges()
 
@@ -191,82 +255,10 @@ function NexusWrappedInstance:__new(InstanceToWrap)
 end
 
 --[[
-Creates an __index metamethod for an object. Used to
-setup custom indexing.
---]]
-function NexusWrappedInstance:__createindexmethod(Object,Class,RootClass)
-	--Get the base method.
-	local BaseIndexMethod = self.super:__createindexmethod(Object,Class,RootClass)
-	
-	--Return a wrapped method.
-    return function(MethodObject,Index)
-        --Return the object value if it exists.
-        local BaseReturn = BaseIndexMethod(MethodObject,Index)
-        if Index == "WrappedInstance" then
-            return BaseReturn
-        end
-        if BaseReturn ~= nil or Index == "DisabledChangesReplication" or Index == "EventsToDisconnect" or Index == "super" then
-            return WrapData(BaseReturn)
-        end
-
-        --Return nil if the replication is disabled.
-        local DisabledChangesReplication = Object.DisabledChangesReplication
-        if DisabledChangesReplication and DisabledChangesReplication[Index] then
-            return nil
-        end
-
-        --Return the wrapped object's value.
-        local WrappedInstance = Object.WrappedInstance
-        if WrappedInstance then
-            local Value = WrappedInstance[Index]
-
-            --Wrap the event.
-            if typeof(Value) == "RBXScriptSignal" then
-                --Create and store the event.
-                local Event = NexusEvent.new()
-                Object:DisableChangeReplication(Index)
-                Object[Index] = Event
-                table.insert(Object.EventsToDisconnect,Event)
-
-                --Connect the event.
-                Value:Connect(function(...)
-                    local TotalArguments = select("#",...)
-                    Event:Fire(unpack(WrapData({...}),1,TotalArguments))
-                end)
-
-                --Return the event.
-                return Event
-            end
-
-            --Wrap the function.
-            if typeof(Value) == "function" then
-                --Wrap the function.
-                local function WrappedFunction(...)
-                    --Unwrap the parameters for the call.
-                    local TotalArguments = select("#",...)
-                    local UnwrappedArguments = UnwrapData({...})
-
-                    --Call and return the wrapped parameters.
-                    return WrapData(Value(unpack(UnwrappedArguments,1,TotalArguments)))
-                end
-
-                --Store and return the function.
-                Object:DisableChangeReplication(Index)
-                Object[Index] = WrappedFunction
-                return WrappedFunction
-            end
-
-            --Return the wrapped data.
-            return WrapData(Value)
-        end
-	end
-end
-
---[[
 Returns if the instance is or inherits from a class of that name.
 --]]
 function NexusWrappedInstance:IsA(ClassName)
-	return self.ClassName == ClassName or self.super:IsA(ClassName) or self:GetWrappedInstance():IsA(ClassName)
+    return self:GetWrappedInstance():IsA(ClassName) or NexusInstance.IsA(self, ClassName)
 end
 
 --[[
@@ -274,16 +266,16 @@ Sets the Parent property to nil, locks the Parent
 property, and calls Destroy on all children.
 --]]
 function NexusWrappedInstance:Destroy()
-	self.super:Destroy()
+    NexusInstance.Destroy(self)
     
     --Destroy the wrapped instance.
-	local WrappedInstance = self:GetWrappedInstance()
-	if WrappedInstance then
-		WrappedInstance:Destroy()
+    local WrappedInstance = self:GetWrappedInstance()
+    if WrappedInstance then
+        WrappedInstance:Destroy()
     end
     
     --Disconnect the events.
-    for _,Event in pairs(self.EventsToDisconnect) do
+    for _,Event in self.EventsToDisconnect do
         Event:Disconnect()
     end
     self.EventsToDisconnect = {}
@@ -293,7 +285,7 @@ end
 Returns the wrapped instance.
 --]]
 function NexusWrappedInstance:GetWrappedInstance()
-	return self.WrappedInstance
+    return self.WrappedInstance
 end
 
 --[[
