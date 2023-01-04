@@ -4,6 +4,7 @@ TheNexusAvenger
 Wraps a Roblox Instance to add additional
 functionality.
 --]]
+--!strict
 
 local RunService = game:GetService("RunService")
 
@@ -15,12 +16,23 @@ NexusWrappedInstance:SetClassName("NexusWrappedInstance")
 NexusWrappedInstance.CachedInstances = {}
 setmetatable(NexusWrappedInstance.CachedInstances, {__mode = "v"})
 
+export type NexusWrappedInstance = {
+    new: (InstanceType: string | Instance) -> NexusWrappedInstance,
+    Extend: (self: NexusWrappedInstance) -> NexusWrappedInstance,
+    CreateGetInstance: (Class: NexusWrappedInstance) -> (),
+
+    GetWrappedInstance: (self: NexusWrappedInstance) -> Instance,
+    DisableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
+    EnableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
+    ConvertProperty: (self: NexusWrappedInstance, PropertyName: string, PropertyValue: any) -> Instance,
+} & NexusInstance.NexusInstance & Instance
+
 
 
 --[[
 Wraps the instance or table.
 --]]
-local function WrapData(InstanceOrTable)
+local function WrapData(InstanceOrTable: any): any
     --Return the wrapped object.
     if typeof(InstanceOrTable) == "Instance" then
         return NexusWrappedInstance.GetInstance(InstanceOrTable)
@@ -42,7 +54,7 @@ end
 --[[
 Unwraps the instance or table.
 --]]
-local function UnwrapData(InstanceOrTable)
+local function UnwrapData(InstanceOrTable: any): any
     --Unwrap the table.
     if typeof(InstanceOrTable) == "table" then
         if InstanceOrTable.WrappedInstance then
@@ -68,9 +80,9 @@ end
 Creates a GetInstance method for the class. Should be
 called staticly (right after NexusObject::Extend).
 --]]
-function NexusWrappedInstance:CreateGetInstance(Class)
+function NexusWrappedInstance:CreateGetInstance(Class: NexusWrappedInstance)
     Class = Class or self
-    Class.GetInstance = function(ExistingInstance)
+    Class.GetInstance = function(ExistingInstance: string | Instance): NexusWrappedInstance
         --Create the string instance or create the cached instance if needed.
         local CachedInstance = NexusWrappedInstance.CachedInstances[ExistingInstance]
         if typeof(ExistingInstance) == "string" then
@@ -90,13 +102,16 @@ NexusWrappedInstance:CreateGetInstance(NexusWrappedInstance)
 --[[
 Creates a Nexus Wrapped Instance object.
 --]]
-function NexusWrappedInstance:__new(InstanceToWrap)
+function NexusWrappedInstance:__new(InstanceOrStringToWrap: string | Instance)
     if self.WrappedInstance then return end
     NexusInstance.__new(self)
 
     --Convert the instance to wrap if it is a string.
-    if typeof(InstanceToWrap) == "string" then
-        InstanceToWrap = Instance.new(tostring(InstanceToWrap))
+    local InstanceToWrap: Instance = nil
+    if typeof(InstanceOrStringToWrap) == "string" then
+        InstanceToWrap = Instance.new(InstanceOrStringToWrap :: any)
+    else
+        InstanceToWrap = InstanceOrStringToWrap :: Instance
     end
     
     --Store the value in the cache.
@@ -135,12 +150,12 @@ function NexusWrappedInstance:__new(InstanceToWrap)
                 local Event = NexusEvent.new()
                 self:DisableChangeReplication(Index)
                 self[Index] = Event
-                table.insert(self.EventsToDisconnect,Event)
+                table.insert(self.EventsToDisconnect, Event)
 
                 --Connect the event.
                 Value:Connect(function(...)
-                    local TotalArguments = select("#",...)
-                    Event:Fire(unpack(WrapData({...}),1,TotalArguments))
+                    local TotalArguments = select("#", ...)
+                    Event:Fire(table.unpack(WrapData({...}), 1, TotalArguments))
                 end)
 
                 --Return the event.
@@ -152,11 +167,11 @@ function NexusWrappedInstance:__new(InstanceToWrap)
                 --Wrap the function.
                 local function WrappedFunction(...)
                     --Unwrap the parameters for the call.
-                    local TotalArguments = select("#",...)
+                    local TotalArguments = select("#", ...)
                     local UnwrappedArguments = UnwrapData(table.pack(...))
 
                     --Call and return the wrapped parameters.
-                    return WrapData(Value(table.unpack(UnwrappedArguments,1,TotalArguments)))
+                    return WrapData(Value(table.unpack(UnwrappedArguments, 1, TotalArguments)))
                 end
 
                 --Store and return the function.
@@ -168,6 +183,9 @@ function NexusWrappedInstance:__new(InstanceToWrap)
             --Return the wrapped data.
             return WrapData(Value)
         end
+
+        --Return nil (default case for typing).
+        return nil
     end
 
     --Set up the cyclic property changing blocking.
@@ -178,7 +196,7 @@ function NexusWrappedInstance:__new(InstanceToWrap)
     --[[
     Queues clearing the previous changes.
     --]]
-    local function QueueClearingChanges()
+    local function QueueClearingChanges(): ()
         --Return if clearing is already queued.
         if PreviousChangesClearQueued then
             return
@@ -187,15 +205,15 @@ function NexusWrappedInstance:__new(InstanceToWrap)
         --Clear the previous changes after the next step.
         --Done to prevent storing extra data in memory that would prevent garbage collection.
         PreviousChangesClearQueued = true
-        coroutine.wrap(function()
+        task.spawn(function()
             RunService.Heartbeat:Wait()
             PreviousChanges = {}
             PreviousChangesClearQueued = false
-        end)()
+        end)
     end
 
     --Connect replicating properties.
-    self:AddGenericPropertyFinalizer(function(PropertyName,Value)
+    self:AddGenericPropertyFinalizer(function(PropertyName: string, Value: any): ()
         --Return if the replication is disabled.
         if self.DisabledChangesReplication[PropertyName] then
             return
@@ -210,15 +228,15 @@ function NexusWrappedInstance:__new(InstanceToWrap)
         --This prevents converted values from affecting the previous set, leading to a stack overflow from the events.
         local ConvertedValue = self:ConvertProperty(PropertyName,Value)
         PreviousChanges[PropertyName] = ConvertedValue
-        QueueClearingChanges()
+        QueueClearingChanges();
 
         --Replicate the change.
-        InstanceToWrap[PropertyName] = ConvertedValue
+        (InstanceToWrap :: any)[PropertyName] = ConvertedValue
     end)
-    InstanceToWrap.Changed:Connect(function(PropertyName)
+    InstanceToWrap.Changed:Connect(function(PropertyName: string): ()
         pcall(function()
             --Read the new value.
-            local NewValue = InstanceToWrap[PropertyName]
+            local NewValue = (InstanceToWrap :: any)[PropertyName]
 
             --Return if the value is the same as the previous change in the last step.
             if PreviousChanges[PropertyName] == NewValue then
@@ -251,13 +269,13 @@ function NexusWrappedInstance:__new(InstanceToWrap)
             self:Destroy()
         end
     end)
-    table.insert(self.EventsToDisconnect,AncestryChangedConnection)
+    table.insert(self.EventsToDisconnect, AncestryChangedConnection)
 end
 
 --[[
 Returns if the instance is or inherits from a class of that name.
 --]]
-function NexusWrappedInstance:IsA(ClassName)
+function NexusWrappedInstance:IsA(ClassName: string): boolean
     return self:GetWrappedInstance():IsA(ClassName) or NexusInstance.IsA(self, ClassName)
 end
 
@@ -265,15 +283,15 @@ end
 Sets the Parent property to nil, locks the Parent
 property, and calls Destroy on all children.
 --]]
-function NexusWrappedInstance:Destroy()
+function NexusWrappedInstance:Destroy(): ()
     NexusInstance.Destroy(self)
-    
+
     --Destroy the wrapped instance.
     local WrappedInstance = self:GetWrappedInstance()
     if WrappedInstance then
         WrappedInstance:Destroy()
     end
-    
+
     --Disconnect the events.
     for _,Event in self.EventsToDisconnect do
         Event:Disconnect()
@@ -292,7 +310,7 @@ end
 Disables changes being replicated to the wrapped
 instance for a specific property.
 --]]
-function NexusWrappedInstance:DisableChangeReplication(PropertyName)
+function NexusWrappedInstance:DisableChangeReplication(PropertyName: string): ()
     self.DisabledChangesReplication[PropertyName] = true
 end
 
@@ -300,7 +318,7 @@ end
 Enables changes being replicated to the wrapped
 instance for a specific property.
 --]]
-function NexusWrappedInstance:EnableChangeReplication(PropertyName)
+function NexusWrappedInstance:EnableChangeReplication(PropertyName: string): ()
     self.DisabledChangesReplication[PropertyName] = nil
 end
 
@@ -308,7 +326,7 @@ end
 Converts a property for replicating to the
 wrapped instance.
 --]]
-function NexusWrappedInstance:ConvertProperty(PropertyName,PropertyValue)
+function NexusWrappedInstance:ConvertProperty(PropertyName: string, PropertyValue: any): ()
     return UnwrapData(PropertyValue)
 end
 
@@ -322,4 +340,4 @@ if _G.EnsureNexusWrappedInstanceSingleton ~= false then
     end
     return _G.NexusWrappedInstanceSingleton
 end
-return NexusWrappedInstance
+return (NexusWrappedInstance :: any) :: NexusWrappedInstance
