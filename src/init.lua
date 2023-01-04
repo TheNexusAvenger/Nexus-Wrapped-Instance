@@ -24,7 +24,7 @@ export type NexusWrappedInstance = {
     GetWrappedInstance: (self: NexusWrappedInstance) -> Instance,
     DisableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
     EnableChangeReplication: (self: NexusWrappedInstance, PropertyName: string) -> Instance,
-    ConvertProperty: (self: NexusWrappedInstance, PropertyName: string, PropertyValue: any) -> Instance,
+    ConvertProperty: (self: NexusWrappedInstance, PropertyName: string, PropertyValue: any) -> any,
 } & NexusInstance.NexusInstance & Instance
 
 
@@ -326,7 +326,7 @@ end
 Converts a property for replicating to the
 wrapped instance.
 --]]
-function NexusWrappedInstance:ConvertProperty(PropertyName: string, PropertyValue: any): ()
+function NexusWrappedInstance:ConvertProperty(PropertyName: string, PropertyValue: any): any
     return UnwrapData(PropertyValue)
 end
 

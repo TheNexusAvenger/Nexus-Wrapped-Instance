@@ -7,7 +7,7 @@
             "NexusWrappedInstance": {
                 "$path": "."
             },
-            "NexusWrappedInstanceTest.nexusspec": {
+            "NexusWrappedInstanceTest.spec": {
                 "$path": "./test"
             }
         }
