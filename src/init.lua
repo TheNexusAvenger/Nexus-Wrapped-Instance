@@ -6,6 +6,11 @@ functionality.
 --]]
 --!strict
 
+--Certain versions of Nexus Wrapped Instance have incompatibilities
+--with other versions. Increment this number if a breaking change
+--is made, such as Nexus Instance V.2.X.X to V.3.X.X.
+local SINGLETON_COMPATIBILITY_VERSION = 2
+
 local RunService = game:GetService("RunService")
 
 local NexusInstance = require(script:WaitForChild("NexusInstance"):WaitForChild("NexusInstance"))
@@ -347,9 +352,12 @@ end
 --In non-test environemnts, return a singleton version of the module.
 --Multiple instances of Nexus Wrapped Instance can have unintended consequences with the state being distributed and inconsistent.
 if _G.EnsureNexusWrappedInstanceSingleton ~= false then
-    if not _G.NexusWrappedInstanceSingleton then
-        _G.NexusWrappedInstanceSingleton = NexusWrappedInstance
+    if not _G.NexusWrappedInstanceSingletonVersions then
+        _G.NexusWrappedInstanceSingletonVersions = {}
     end
-    return _G.NexusWrappedInstanceSingleton
+    if not _G.NexusWrappedInstanceSingletonVersions[SINGLETON_COMPATIBILITY_VERSION] then
+        _G.NexusWrappedInstanceSingletonVersions[SINGLETON_COMPATIBILITY_VERSION] = NexusWrappedInstance
+    end
+    return _G.NexusWrappedInstanceSingletonVersions[SINGLETON_COMPATIBILITY_VERSION]
 end
 return (NexusWrappedInstance :: any) :: NexusWrappedInstance
