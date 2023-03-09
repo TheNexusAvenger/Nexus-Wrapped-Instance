@@ -245,6 +245,11 @@ function NexusWrappedInstance:__new(InstanceOrStringToWrap: string | Instance)
     end)
     InstanceToWrap.Changed:Connect(function(PropertyName: string): ()
         pcall(function()
+            --Return if the replication is disabled.
+            if self.DisabledChangesReplication[PropertyName] then
+                return
+            end
+
             --Read the new value.
             local NewValue = (InstanceToWrap :: any)[PropertyName]
 
